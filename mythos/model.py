@@ -230,8 +230,12 @@ class GPT(nn.Module):
         return torch.optim.AdamW(groups, lr=lr, betas=betas, **({"fused": True} if fused else {}))
 
     @torch.no_grad()
-    def generate(self, idx, max_new_tokens, temperature=1.0, top_k=None, top_p=None):
-        """Autoregressive sampling with a KV-cache for O(T) generation."""
+    def generate(self, idx, max_new_tokens, temperature=1.0, top_k=None, top_p=None,
+                 eos_token_id=None):
+        """Autoregressive sampling with a KV-cache for O(T) generation.
+
+        Stops early once every sequence in the batch has emitted ``eos_token_id``.
+        """
         self.eval()
         device = idx.device
         cos, sin = self._rope(device, torch.float32)
@@ -249,6 +253,8 @@ class GPT(nn.Module):
         for _ in range(max_new_tokens):
             next_id = self._sample(logits[:, -1, :], temperature, top_k, top_p)
             idx = torch.cat([idx, next_id], dim=1)
+            if eos_token_id is not None and (next_id == eos_token_id).all():
+                break
             if pos >= self.cfg.block_size:
                 # Context full: restart the cache from the most recent window.
                 cond = idx[:, -self.cfg.block_size:]

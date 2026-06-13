@@ -72,12 +72,20 @@ class CharTokenizer:
         return cls(data["itos"])
 
 
-def build_tokenizer(kind: str, text: str = ""):
-    """Factory: ``kind`` is ``"byte"`` or ``"char"``."""
+def build_tokenizer(kind: str, text: str = "", vocab_size: int = 4096):
+    """Factory: ``kind`` is ``"byte"``, ``"char"`` or ``"bpe"``.
+
+    For ``"bpe"`` a tokenizer is *trained* on ``text`` up to ``vocab_size`` and
+    includes the chat special tokens by default.
+    """
     if kind == "byte":
         return ByteTokenizer()
     if kind == "char":
         return CharTokenizer.from_text(text)
+    if kind == "bpe":
+        from .bpe import BPETokenizer
+        from .chat import CHAT_SPECIAL_TOKENS
+        return BPETokenizer.train(text, vocab_size, CHAT_SPECIAL_TOKENS)
     raise ValueError(f"unknown tokenizer kind {kind!r}")
 
 
@@ -85,4 +93,9 @@ def load_tokenizer(path: str):
     """Load whichever tokenizer was saved at ``path``."""
     with open(path) as f:
         kind = json.load(f).get("kind", "byte")
-    return ByteTokenizer.load(path) if kind == "byte" else CharTokenizer.load(path)
+    if kind == "char":
+        return CharTokenizer.load(path)
+    if kind == "bpe":
+        from .bpe import BPETokenizer
+        return BPETokenizer.load(path)
+    return ByteTokenizer.load(path)

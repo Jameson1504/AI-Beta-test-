@@ -59,16 +59,18 @@ scripts/
 
 ## Roadmap (how this grows from toy to serious)
 
-1. **Phase 0 — Foundation (this commit):** working modern GPT, trains on CPU on a
-   tiny corpus, generates text, has tests. *Proves the engine runs.*
-2. **Phase 1 — Real tokenizer & data:** train a BPE tokenizer; ingest a larger
-   corpus (books/code). Bigger context window.
-3. **Phase 2 — Scale on GPU:** mixed precision (bf16), gradient accumulation,
-   `torch.compile`, multi-GPU (DDP/FSDP). Bump to 100M–1B params.
-4. **Phase 3 — Post-training:** instruction-tune on (prompt, response) pairs so
-   it follows instructions like a chat model; optional preference tuning (DPO).
-5. **Phase 4 — Evaluation & serving:** eval harness (perplexity + task benchmarks),
-   a small inference server, quantization for cheap deployment.
+1. ✅ **Phase 0 — Foundation:** working modern GPT, trains on CPU on a tiny
+   corpus, generates text, has tests. *Proves the engine runs.*
+2. ✅ **Phase 1 — Real tokenizer:** from-scratch byte-level BPE (`mythos/bpe.py`)
+   with chat special tokens; ~4x more text per context window.
+3. 🟡 **Phase 2 — Scale on GPU:** multi-GPU **DDP** is wired (`torchrun`), plus
+   bf16/AMP, gradient accumulation, and `torch.compile`. Remaining: run it on a
+   real GPU box with a multi-GB dataset to reach 100M–1B params.
+4. 🟡 **Phase 3 — Post-training:** instruction-tuning (SFT) with masked loss
+   (`mythos/finetune.py`) + a chat CLI (`mythos/chat.py`) are done. Remaining:
+   preference tuning (DPO) and a larger instruction set.
+5. ⏭ **Phase 4 — Evaluation & serving:** eval harness (perplexity + task
+   benchmarks), a small inference server, quantization for cheap deployment.
 
 ## How to run (after Phase 0)
 

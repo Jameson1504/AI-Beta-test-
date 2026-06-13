@@ -74,18 +74,71 @@ Train longer / bigger for cleaner output.
 Override anything on the CLI: `--steps`, `--batch-size`, `--lr`, `--block-size`,
 `--device`, `--compile`.
 
+## Advanced: BPE tokenizer, multi-GPU, and chat fine-tuning
+
+### Byte-level BPE tokenizer (from scratch)
+
+Each BPE token covers ~3-4 characters, so a context window holds ~4x more text
+than the byte tokenizer. It also carries chat special tokens (`<|user|>`, …).
+
+```bash
+# Train a tokenizer once...
+python -m mythos.bpe --data data/input.txt --vocab-size 4096 --out tok.json
+# ...then pretrain with it (or just pass --tokenizer bpe to train inline)
+python -m mythos.train --preset small --tokenizer bpe --vocab-size 4096 \
+    --data data/input.txt
+```
+
+### Multi-GPU training (DDP)
+
+One process per GPU via `torchrun`. Logging/checkpointing happen on rank 0;
+gradients sync once per optimizer step (and only on the last micro-step when
+accumulating). Backend is chosen automatically (`nccl` on GPU, `gloo` on CPU).
+
+```bash
+torchrun --standalone --nproc_per_node=4 -m mythos.train \
+    --preset base --data data/input.txt --compile
+```
+
+### Instruction-tuning → a chat assistant
+
+Turn a pretrained base model into a chat model by training on
+(instruction, response) pairs, with the loss masked to the assistant response.
+Requires a BPE tokenizer with chat tokens (the default).
+
+```bash
+# 1) pretrain a base model with the BPE tokenizer
+python -m mythos.train --preset small --tokenizer bpe --data data/input.txt --out checkpoints
+# 2) instruction-tune it
+python -m mythos.finetune --init checkpoints --data data/instructions.jsonl --out checkpoints-sft
+# 3) chat with it
+python -m mythos.chat --ckpt checkpoints-sft
+```
+
+The chat template is `<|system|>…<|user|>…<|assistant|>…<|endoftext|>`, and
+generation stops at `<|endoftext|>`. Bring your own JSONL of
+`{"instruction", "input"?, "output"}` (Alpaca-style) or `{"system"?, "user", "response"}`.
+
+> Note: quality tracks scale. The included toy data + a 1M-param model just
+> proves the *pipeline* end-to-end; real answers need a bigger model, more data,
+> and more steps.
+
 ## Project layout
 
 ```
 mythos/
   config.py      # dataclass configs + presets
-  tokenizer.py   # byte-level and char-level tokenizers (from scratch)
+  tokenizer.py   # byte- and char-level tokenizers (from scratch)
+  bpe.py         # byte-level BPE tokenizer + special tokens (from scratch)
   model.py       # the GPT: RMSNorm, RoPE, attention, SwiGLU, KV-cache
   data.py        # tokenized dataset + batching
-  train.py       # AdamW · cosine LR · eval · checkpoints
+  train.py       # AdamW · cosine LR · eval · checkpoints · multi-GPU (DDP)
+  finetune.py    # instruction-tuning (SFT) stage
+  chat.py        # chat template, SFT data, interactive chat CLI
   generate.py    # autoregressive sampling
-data/input.txt   # demo corpus (swap your own)
-tests/test_model.py
+data/input.txt          # demo pretraining corpus (swap your own)
+data/instructions.jsonl # demo instruction dataset for SFT
+tests/                  # model + tokenizer/chat tests
 scripts/demo.sh
 ```
 
@@ -98,15 +151,15 @@ PYTHONPATH=. python tests/test_model.py     # or: python -m pytest -q
 Includes the two best smoke tests for an LM: *generation-with-KV-cache matches a
 full forward pass*, and *the model can overfit a single batch*.
 
-## Scaling up (the roadmap, briefly)
+## Scaling up (the roadmap)
 
-1. **Bigger data + BPE tokenizer** → longer context, richer vocab.
-2. **GPU**: `--preset base --compile`, bf16, gradient accumulation, multi-GPU
-   (DDP/FSDP) → 100M–1B params.
-3. **Post-training**: instruction-tune on (prompt, response) pairs so it follows
-   instructions like a chat assistant; optional preference tuning (DPO).
-4. **Eval & serve**: perplexity + task benchmarks, a small inference server,
-   quantization.
+1. ✅ **BPE tokenizer** → ~4x more text per context window, richer vocab.
+2. ✅ **Multi-GPU (DDP)** → data-parallel training across GPUs with `torchrun`.
+3. ✅ **Instruction-tuning** → masked-loss SFT + a chat CLI.
+4. ⏭ **More scale**: `--preset base --compile`, bf16, gradient accumulation, a
+   real multi-GB dataset → 100M–1B params on a GPU box.
+5. ⏭ **Preference tuning (DPO)** and an eval harness (perplexity + tasks).
+6. ⏭ **Serving**: a small inference server + quantization for cheap deployment.
 
 Full detail in [`PLAN.md`](PLAN.md).
 
