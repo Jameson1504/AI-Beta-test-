@@ -163,6 +163,16 @@ full forward pass*, and *the model can overfit a single batch*.
 
 Full detail in [`PLAN.md`](PLAN.md).
 
+## Also in this repo: `flow_local`
+
+A separate, unrelated project living alongside Mythos: a private, fully
+local clone of [Wispr Flow](https://wisprflow.ai)'s voice-dictation
+experience — hold a hotkey, talk, get clean text typed into whatever app has
+focus, with no audio or text ever leaving your machine (unlike Wispr Flow,
+which is cloud-only). See [`flow_local/README.md`](flow_local/README.md) for
+setup and [`flow_local/ARCHITECTURE.md`](flow_local/ARCHITECTURE.md) for the
+research behind it.
+
 ## License
 
 MIT — do anything you like with it.
