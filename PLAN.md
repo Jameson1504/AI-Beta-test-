@@ -45,14 +45,19 @@ Decoder-only transformer with the upgrades used by Llama / Mistral / modern LMs:
 mythos/
   config.py      # dataclass model + training configs (toy / small / scale presets)
   tokenizer.py   # byte-level and char-level tokenizers (from scratch)
+  bpe.py         # byte-level BPE tokenizer + chat special tokens (from scratch)
   model.py       # the GPT: RMSNorm, RoPE, attention, SwiGLU, KV-cache
   data.py        # tokenized dataset + batching
-  train.py       # training loop (AdamW, cosine schedule, eval, checkpoints)
+  train.py       # training loop (AdamW, cosine schedule, eval, checkpoints, DDP)
+  finetune.py    # instruction-tuning (SFT) stage
+  chat.py        # chat template, SFT data, interactive chat CLI
   generate.py    # autoregressive sampling
 data/
-  input.txt      # tiny demo corpus (swap in your own)
+  input.txt          # tiny demo corpus (swap in your own)
+  instructions.jsonl # demo instruction dataset for SFT
 tests/
-  test_model.py  # shape checks + "overfit one batch" sanity test
+  test_model.py     # shape checks + "overfit one batch" sanity test
+  test_bpe_chat.py  # BPE round-trip + chat template tests
 scripts/
   demo.sh        # train a tiny model end-to-end and sample from it
 ```

@@ -102,7 +102,8 @@ def unwrap(model):
 def main() -> None:
     p = argparse.ArgumentParser(description="Train a Mythos GPT from scratch.")
     p.add_argument("--preset", default="toy", help="toy | small | base")
-    p.add_argument("--data", dest="data_path", default=None)
+    p.add_argument("--data", dest="data_path", required=True,
+                   help="path to a UTF-8 text corpus, e.g. data/input.txt")
     p.add_argument("--tokenizer", default=None, choices=[None, "byte", "char", "bpe"])
     p.add_argument("--tokenizer-path", default=None,
                    help="load a pre-trained tokenizer (e.g. a saved BPE) instead of building one")

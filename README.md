@@ -59,9 +59,11 @@ UTF-8 text file to train on your own data.
 
 ### Verified working
 
-After 500 CPU steps on the toy preset, training loss falls **5.49 → 1.87** and
-the model emits Shakespeare-shaped text (character names, dialogue, line breaks).
-Train longer / bigger for cleaner output.
+After 500 CPU steps on the toy preset
+(`python -m mythos.train --preset toy --data data/input.txt --steps 500`),
+training loss falls **5.49 → 1.87** and the model emits Shakespeare-shaped text
+(character names, dialogue, line breaks). The default `--steps 2000` (what
+`scripts/demo.sh` runs) trains longer for cleaner output.
 
 ## Presets
 
@@ -145,7 +147,8 @@ scripts/demo.sh
 ## Tests
 
 ```bash
-PYTHONPATH=. python tests/test_model.py     # or: python -m pytest -q
+pip install -r requirements-dev.txt   # installs pytest
+python -m pytest -q                   # runs tests/test_model.py + tests/test_bpe_chat.py
 ```
 
 Includes the two best smoke tests for an LM: *generation-with-KV-cache matches a
